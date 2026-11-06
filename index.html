@@ -1,0 +1,1901 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待办小组件</title>
+    <meta name="theme-color" content="#6366f1">
+    <meta name="description" content="让每一天都井井有条 — 桌面待办事项小组件">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%236366f1' width='100' height='100' rx='20'/><text x='50' y='68' text-anchor='middle' font-size='55'>📝</text></svg>">
+    <style>
+        /* ═══════════════════════════════════════════════════
+           Modern Todo Widget — Clean, Warm, Refined
+           ═══════════════════════════════════════════════════ */
+        :root {
+            --bg: #f5f2ed;
+            --card-bg: #ffffff;
+            --text: #1e1e24;
+            --text-secondary: #8b8a91;
+            --text-tertiary: #b0afb6;
+            --border: #eeece8;
+            --border-light: #f4f2ee;
+            --primary: #6366f1;
+            --primary-ghost: #eae8fd;
+            --primary-light: #818cf8;
+            --primary-dark: #4f46e5;
+            --danger: #f43f5e;
+            --danger-ghost: #ffe4e6;
+            --success: #10b981;
+            --success-ghost: #d1fae5;
+            --warn: #f59e0b;
+            --warn-ghost: #fef3c7;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+            --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+            --shadow-lg: 0 8px 30px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.04);
+            --radius: 10px;
+            --radius-sm: 8px;
+            --font-scale: 1;
+
+        }
+
+        /* Base font-size driven by scale — all rem units scale with this */
+        html { font-size: calc(16px * var(--font-scale)); }
+
+        /* Theme color overrides — sets --primary & --primary-ghost */
+        body.theme-indigo   { --primary: #6366f1; --primary-ghost: #eae8fd; }
+        body.theme-rose     { --primary: #f43f5e; --primary-ghost: #ffe4e6; }
+        body.theme-emerald  { --primary: #10b981; --primary-ghost: #d1fae5; }
+        body.theme-amber    { --primary: #f59e0b; --primary-ghost: #fef3c7; }
+        body.theme-sky      { --primary: #0ea5e9; --primary-ghost: #e0f2fe; }
+        body.theme-violet   { --primary: #8b5cf6; --primary-ghost: #ede9fe; }
+        body.theme-pink     { --primary: #ec4899; --primary-ghost: #fce7f3; }
+        body.theme-orange   { --primary: #f97316; --primary-ghost: #fff7ed; }
+        body.theme-teal     { --primary: #14b8a6; --primary-ghost: #ccfbf1; }
+        body.theme-slate    { --primary: #64748b; --primary-ghost: #f1f5f9; }
+        body.theme-lime     { --primary: #84cc16; --primary-ghost: #ecfccb; }
+        body.theme-cyan     { --primary: #06b6d4; --primary-ghost: #cffafe; }
+            --radius-xs: 8px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 12px 10px;
+            -webkit-font-smoothing: antialiased;
+            letter-spacing: -0.01em;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* ── Header ──────────────────────────────── */
+        .header {
+            text-align: center;
+            padding: 2px 0 0;
+        }
+
+        .header h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .header h1 .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+        .header .subtitle {
+            color: var(--text-tertiary);
+            font-size: 0.72rem;
+            margin-top: 1px;
+            font-weight: 400;
+        }
+
+        /* ── Header font size controls (window mode) ── */
+        .header-fontsize {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 6px;
+        }
+        body.widget-mode .header-fontsize { display: none; }
+
+        /* ── Card ────────────────────────────────── */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            border: 1px solid var(--border-light);
+        }
+
+        /* ── Input ───────────────────────────────── */
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+        }
+
+        .input-group input {
+            flex: 1;
+            border: none;
+            padding: 8px 0;
+            font-size: 0.9rem;
+            outline: none;
+            background: transparent;
+            color: var(--text);
+            border-bottom: 2px solid var(--border);
+            transition: border-color var(--transition);
+            font-family: inherit;
+            letter-spacing: -0.01em;
+        }
+        .input-group input:focus {
+            border-color: var(--primary);
+        }
+        .input-group input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .btn-add {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: var(--text);
+            color: #fff;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+            font-family: inherit;
+            line-height: 1;
+        }
+        .btn-add:hover {
+            background: var(--primary);
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(99,102,241,.35);
+        }
+        .btn-add:active {
+            transform: scale(0.95);
+        }
+
+        /* ── Filters ─────────────────────────────── */
+        .filters {
+            display: flex;
+            gap: 4px;
+            padding: 2px 14px 8px;
+        }
+
+        .filter-btn {
+            padding: 4px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+            font-family: inherit;
+            letter-spacing: -0.01em;
+        }
+        .filter-btn:hover {
+            background: #f4f4f5;
+            color: var(--text);
+        }
+        .filter-btn.active {
+            background: var(--text);
+            color: #fff;
+        }
+
+        /* ── Todo List ───────────────────────────── */
+        .todo-list {
+            list-style: none;
+            max-height: none;
+            overflow-y: auto;
+            border-top: 1px solid var(--border-light);
+        }
+        .todo-list::-webkit-scrollbar { width: 3px; }
+        .todo-list::-webkit-scrollbar-thumb {
+            background: #e5e3df;
+            border-radius: 3px;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-bottom: 1px solid var(--border-light);
+            transition: background var(--transition);
+            animation: slideIn 0.3s ease-out;
+        }
+        .todo-item.drag-over {
+            border-top: 2px solid var(--primary);
+        }
+        .todo-item.dragging {
+            opacity: 0.4;
+            background: var(--primary-ghost);
+        }
+
+        /* ── Drag Handle ─────────────────────────── */
+        .drag-handle {
+            flex-shrink: 0;
+            cursor: grab;
+            color: var(--text-tertiary);
+            font-size: 0.6rem;
+            letter-spacing: -2px;
+            line-height: 1;
+            padding: 1px;
+            border-radius: 3px;
+            transition: all var(--transition);
+            user-select: none;
+        }
+        .drag-handle:hover {
+            color: var(--text-secondary);
+            background: #f4f4f5;
+        }
+        .drag-handle:active { cursor: grabbing; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideOut {
+            from { opacity: 1; transform: translateX(0); }
+            to   { opacity: 0; transform: translateX(40px); }
+        }
+        .todo-item.removing {
+            animation: slideOut 0.25s ease-in forwards;
+        }
+        .todo-item:hover {
+            background: #fafaf9;
+        }
+        .todo-item:last-child {
+            border-bottom: none;
+        }
+
+        /* ── Checkbox ────────────────────────────── */
+        .checkbox-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .checkbox-wrapper input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #d4d2ce;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all var(--transition);
+            flex-shrink: 0;
+            background: #fff;
+        }
+        .checkbox-wrapper input[type="checkbox"]:hover {
+            border-color: var(--primary);
+            background: var(--primary-ghost);
+        }
+        .checkbox-wrapper input[type="checkbox"]:checked {
+            background: var(--success);
+            border-color: var(--success);
+        }
+        .checkbox-wrapper input[type="checkbox"]:checked::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 1.5px;
+            width: 4px;
+            height: 8px;
+            border: solid #fff;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        /* ── Todo Text ───────────────────────────── */
+        .todo-text {
+            flex: 1;
+            font-size: 0.85rem;
+            line-height: 1.35;
+            word-break: break-word;
+            transition: all var(--transition);
+            cursor: pointer;
+            color: var(--text);
+        }
+        .todo-item.completed .todo-text {
+            color: var(--text-tertiary);
+            text-decoration: line-through;
+            text-decoration-color: #d5d3cf;
+        }
+
+        .edit-input {
+            flex: 1;
+            border: none;
+            border-bottom: 2px solid var(--primary);
+            padding: 6px 0;
+            font-size: 0.92rem;
+            outline: none;
+            font-family: inherit;
+            color: var(--text);
+            background: transparent;
+            letter-spacing: -0.01em;
+        }
+
+        /* ── Actions ─────────────────────────────── */
+        .actions {
+            display: flex;
+            gap: 2px;
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity var(--transition);
+        }
+        .todo-item:hover .actions {
+            opacity: 1;
+        }
+
+        .btn-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: var(--radius-xs);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+            color: var(--text-tertiary);
+            font-size: 0.8rem;
+        }
+        .btn-icon:hover {
+            background: #f4f4f5;
+            color: var(--text);
+        }
+        .btn-icon.delete:hover {
+            background: var(--danger-ghost);
+            color: var(--danger);
+        }
+        .btn-icon.edit:hover {
+            background: var(--primary-ghost);
+            color: var(--primary);
+        }
+
+        /* ── Footer ──────────────────────────────── */
+        .footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 14px;
+            border-top: 1px solid var(--border-light);
+            font-size: 0.72rem;
+            color: var(--text-tertiary);
+        }
+        .btn-clear {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            transition: all var(--transition);
+            font-family: inherit;
+        }
+        .btn-clear:hover {
+            color: var(--danger);
+            background: var(--danger-ghost);
+        }
+        .btn-clear:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        /* ── Empty State ─────────────────────────── */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 28px 12px;
+            color: var(--text-tertiary);
+        }
+        .empty-state .icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            opacity: 0.6;
+        }
+        .empty-state p {
+            font-size: 0.8rem;
+        }
+
+        /* ── Drag Bar (Electron widget mode) ─────── */
+        .drag-bar {
+            display: none;
+            height: 4px;
+            background: transparent;
+            -webkit-app-region: drag;
+            user-select: none;
+        }
+
+        /* ── Resize Handle ─────────────────────────── */
+        .resize-handle {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            cursor: nwse-resize;
+            z-index: 9999;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .resize-handle::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            width: 10px;
+            height: 10px;
+            border-right: 2px solid #999;
+            border-bottom: 2px solid #999;
+        }
+        .resize-handle:hover {
+            opacity: 1;
+        }
+        .resize-handle:hover::after {
+            border-color: var(--primary);
+        }
+        .drag-btn {
+            width: 30px;
+            height: 26px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            transition: all var(--transition);
+            font-family: inherit;
+        }
+        .drag-btn:hover { background: #f4f4f5; color: var(--text); }
+        .drag-btn.close:hover { background: var(--danger-ghost); color: var(--danger); }
+        .drag-btn.widget-toggle { font-size: 0.9rem; color: var(--primary); }
+        .drag-btn.widget-toggle:hover { background: var(--primary-ghost); }
+
+        /* ── AI Panel ────────────────────────────── */
+        .ai-panel {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            border: 1px solid var(--border-light);
+        }
+        .ai-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-light);
+            background: #fafaf8;
+        }
+        .ai-panel-header .ai-title {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .ai-panel-header .ai-title .ai-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--primary);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .btn-analyze {
+            padding: 6px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 20px;
+            background: #fff;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            font-family: inherit;
+            transition: all var(--transition);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .btn-analyze:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-ghost);
+        }
+        .btn-analyze:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .ai-summary {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-light);
+            line-height: 1.4;
+        }
+        .ai-summary:empty { display: none; }
+        .ai-summary:only-child { border-bottom: none; }
+
+        .ai-deadlines {
+            padding: 4px 12px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .ai-deadlines:empty { display: none; }
+        .ai-deadline-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 0.78rem;
+        }
+        .ai-deadline-item:last-child { border-bottom: none; }
+        .ai-deadline-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .ai-deadline-date {
+            flex-shrink: 0;
+            font-weight: 600;
+            min-width: 85px;
+            font-size: 0.76rem;
+        }
+        .ai-deadline-text {
+            flex: 1;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .ai-deadline-badge {
+            flex-shrink: 0;
+            font-size: 0.68rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        /* ── Deadline badge on todos ─────────────── */
+        .deadline-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+            margin-left: 8px;
+            vertical-align: middle;
+            flex-shrink: 0;
+            white-space: nowrap;
+            letter-spacing: 0;
+        }
+
+        /* ── Widget Mode ─────────────────────────── */
+        body.widget-mode {
+            padding: 0 !important;
+            background: var(--card-bg);
+            height: 100vh;
+            overflow: hidden;
+        }
+        body.widget-mode .app {
+            max-width: 100%;
+            gap: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+body.widget-mode .drag-bar { display: block; flex-shrink: 0; }
+        body.widget-mode .resize-handle { display: block; }
+
+        /* Widget split layout */
+        body.widget-mode .widget-body {
+            flex-direction: row;
+            flex: 1;
+            min-height: 0;
+        }
+        body.widget-mode .widget-sidebar {
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            width: 58px;
+            min-width: 40px;
+            max-width: 130px;
+            border-right: 1px solid var(--border-light);
+            background: #fafaf8;
+            padding: 3px 2px;
+            gap: 3px;
+            overflow-y: auto;
+        }
+        body.widget-mode .widget-divider {
+            display: block;
+            width: 3px;
+            cursor: col-resize;
+            flex-shrink: 0;
+            background: transparent;
+            transition: background 0.15s;
+            z-index: 10;
+        }
+        body.widget-mode .widget-divider:hover,
+        body.widget-mode .widget-divider.dragging {
+            background: var(--primary);
+            opacity: 0.5;
+        }
+        body.widget-mode .widget-main {
+            flex: 1;
+            min-width: 150px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        /* Sidebar inner */
+        .sidebar-header {
+            text-align: center;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border-light);
+            -webkit-app-region: drag;
+            user-select: none;
+        }
+        .sidebar-actions {
+            display: flex;
+            justify-content: center;
+            gap: 3px;
+            padding-bottom: 4px;
+            -webkit-app-region: no-drag;
+        }
+        .sidebar-action-btn {
+            width: 18px;
+            height: 16px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.58rem;
+            color: var(--text-tertiary);
+            transition: all var(--transition);
+            font-family: inherit;
+        }
+        .sidebar-action-btn:hover { background: #eeece8; color: var(--text); }
+        .sidebar-action-btn.close:hover { background: var(--danger-ghost); color: var(--danger); }
+        .sidebar-action-btn.widget-toggle { font-size: 0.68rem; color: var(--primary); }
+        .sidebar-action-btn.widget-toggle:hover { background: var(--primary-ghost); }
+        .sidebar-title {
+            font-size: 0.63rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.01em;
+            margin-bottom: 2px;
+            -webkit-app-region: drag;
+        }
+        .sidebar-date {
+            text-align: center;
+            font-size: 0.55rem;
+            color: var(--text-secondary);
+            line-height: 1.2;
+            -webkit-app-region: drag;
+        }
+        .sidebar-date .s-date-num {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
+            margin-bottom: 1px;
+        }
+        .sidebar-filters {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .sidebar-filter-btn {
+            padding: 3px 3px;
+            border: none;
+            background: transparent;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.58rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+            font-family: inherit;
+            text-align: center;
+        }
+        .sidebar-filter-btn:hover {
+            background: #eeece8;
+            color: var(--text);
+        }
+        .sidebar-filter-btn.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* Theme picker dots */
+        .sidebar-theme {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 3px;
+            padding-top: 3px;
+            border-top: 1px solid var(--border-light);
+        }
+        .theme-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: all var(--transition);
+            flex-shrink: 0;
+        }
+        .theme-dot:hover { opacity: 0.8; transform: scale(1.2); }
+        .theme-dot.active { opacity: 1; box-shadow: 0 0 0 2px var(--card-bg), 0 0 0 3px currentColor; }
+
+        /* Custom color picker */
+        .theme-custom {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+        .theme-custom input[type="color"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .theme-custom-icon {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            border: 1.5px dashed var(--text-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.5rem;
+            color: var(--text-tertiary);
+            line-height: 1;
+            transition: all var(--transition);
+        }
+        .theme-custom:hover .theme-custom-icon {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: scale(1.2);
+        }
+
+        /* Font size controls in sidebar */
+        .sidebar-fontsize {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 4px 0;
+            border-top: 1px solid var(--border-light);
+        }
+        .fontsize-btn {
+            width: 20px;
+            height: 18px;
+            border: 1px solid var(--border);
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.58rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+            font-family: inherit;
+            line-height: 1;
+            padding: 0;
+        }
+        .fontsize-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-ghost);
+        }
+        .fontsize-label {
+            font-size: 0.55rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            min-width: 28px;
+            text-align: center;
+            user-select: none;
+        }
+        .fontsize-reset {
+            width: 16px;
+            height: 16px;
+            border: none;
+            background: transparent;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.52rem;
+            color: var(--text-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+            font-family: inherit;
+            line-height: 1;
+            padding: 0;
+        }
+        .fontsize-reset:hover {
+            color: var(--primary);
+            background: var(--primary-ghost);
+        }
+
+        /* Hide horizontal filters in widget mode */
+        body.widget-mode .filters { display: none; }
+        body.widget-mode .header { display: none; }
+        body.widget-mode .card {
+            border-radius: 0;
+            box-shadow: none;
+            border: none;
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        body.widget-mode .input-group { padding: 6px 8px; gap: 5px; flex-shrink: 0; }
+        body.widget-mode .input-group input { padding: 5px 0; font-size: 0.74rem; }
+        body.widget-mode .btn-add { width: 26px; height: 26px; font-size: 0.95rem; }
+        body.widget-mode .filter-btn { padding: 2px 8px; font-size: 0.62rem; }
+        body.widget-mode .todo-list {
+            max-height: none;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+        }
+        body.widget-mode .todo-item { padding: 4px 8px; gap: 4px; }
+        body.widget-mode .drag-handle { font-size: 0.5rem; padding: 1px; }
+        body.widget-mode .todo-text { font-size: 0.72rem; }
+        body.widget-mode .checkbox-wrapper input[type="checkbox"] {
+            width: 14px; height: 14px; border-radius: 3px;
+        }
+        body.widget-mode .checkbox-wrapper input[type="checkbox"]:checked::after {
+            left: 3.5px; top: 1px; width: 3px; height: 5px;
+        }
+        body.widget-mode .btn-icon { width: 20px; height: 20px; font-size: 0.65rem; }
+        body.widget-mode .footer { padding: 3px 8px; font-size: 0.62rem; flex-shrink: 0; }
+        body.widget-mode .empty-state { padding: 16px 10px; }
+        body.widget-mode .empty-state .icon { font-size: 1.3rem; }
+        body.widget-mode .empty-state p { font-size: 0.65rem; }
+        body.widget-mode .ai-panel {
+            border-radius: 0;
+            box-shadow: none;
+            border: none;
+            border-top: 1px solid var(--border-light);
+            flex: 0 1 auto;
+            max-height: 45%;
+            min-height: 56px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding-bottom: 4px;
+        }
+        body.widget-mode .ai-panel-header { padding: 3px 8px; flex-shrink: 0; }
+        body.widget-mode .ai-panel-header .ai-title { font-size: 0.64rem; }
+        body.widget-mode .btn-analyze { padding: 2px 7px; font-size: 0.6rem; }
+        body.widget-mode .ai-summary {
+            padding: 3px 8px;
+            font-size: 0.62rem;
+            flex-shrink: 0;
+        }
+        body.widget-mode .ai-deadlines {
+            padding: 2px 8px 6px;
+            max-height: none;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+        }
+        body.widget-mode .ai-deadline-item {
+            padding: 2px 0;
+            font-size: 0.62rem;
+            gap: 3px;
+            flex-wrap: nowrap;
+        }
+        body.widget-mode .ai-deadline-dot { width: 4px; height: 4px; flex-shrink: 0; }
+        body.widget-mode .ai-deadline-date {
+            min-width: auto;
+            font-size: 0.6rem;
+            flex-shrink: 0;
+        }
+        body.widget-mode .ai-deadline-text {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 0.6rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        body.widget-mode .ai-deadline-badge {
+            font-size: 0.52rem;
+            padding: 1px 3px;
+            flex-shrink: 0;
+        }
+        body.widget-mode .deadline-badge { font-size: 0.48rem; padding: 1px 3px; margin-left: 2px; }
+        body.widget-mode .widget-main { padding-bottom: 4px; }
+
+        /* ── Widget Split Layout (base) ──────────── */
+        .widget-body {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+        .widget-sidebar { display: none; }
+        .widget-divider { display: none; }
+        .widget-main {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* ── Responsive ──────────────────────────── */
+        @media (max-width: 480px) {
+            body { padding: 8px 6px; }
+            .header h1 { font-size: 1.1rem; }
+            .todo-list { max-height: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Electron drag bar (widget mode only) -->
+    <!-- Minimal drag area (widget mode only) -->
+    <div class="drag-bar" id="dragBar"></div>
+
+    <!-- Resize handle (widget mode) -->
+    <div class="resize-handle" id="resizeHandle"></div>
+
+    <div class="app">
+        <header class="header">
+            <h1><span class="dot"></span>待办清单</h1>
+            <p class="subtitle">让每一天都井井有条</p>
+            <div class="header-fontsize" id="headerFontsize">
+                <button class="fontsize-btn" data-action="font-down" title="缩小字号">A−</button>
+                <span class="fontsize-label" id="headerFontsizeLabel">100%</span>
+                <button class="fontsize-btn" data-action="font-up" title="放大字号">A+</button>
+                <button class="fontsize-reset" data-action="font-reset" title="重置字号">↺</button>
+            </div>
+        </header>
+
+        <div class="widget-body" id="widgetBody">
+            <!-- Sidebar -->
+            <div class="widget-sidebar" id="widgetSidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-actions">
+                        <button class="sidebar-action-btn" id="minimizeBtn" title="最小化">–</button>
+                        <button class="sidebar-action-btn close" id="closeWidgetBtn" title="关闭到托盘">✕</button>
+                        <button class="sidebar-action-btn widget-toggle" id="modeToggleBtn" title="切换窗口模式">⊡</button>
+                    </div>
+                    <div class="sidebar-title">待办清单</div>
+                    <div class="sidebar-date" id="sidebarDate"></div>
+                </div>
+                <div class="sidebar-filters" id="sidebarFilters">
+                    <button class="sidebar-filter-btn active" data-filter="all">全部</button>
+                    <button class="sidebar-filter-btn" data-filter="active">待完成</button>
+                    <button class="sidebar-filter-btn" data-filter="completed">已完成</button>
+                </div>
+                <!-- Font size controls -->
+                <div class="sidebar-fontsize" id="sidebarFontsize">
+                    <button class="fontsize-btn" data-action="font-down" title="缩小字号">A−</button>
+                    <span class="fontsize-label" id="fontsizeLabel">100%</span>
+                    <button class="fontsize-btn" data-action="font-up" title="放大字号">A+</button>
+                    <button class="fontsize-reset" data-action="font-reset" title="重置字号">↺</button>
+                </div>
+
+                <div class="sidebar-theme" id="sidebarTheme">
+                    <span class="theme-dot active" data-theme="indigo" style="background:#6366f1" title="靛青"></span>
+                    <span class="theme-dot" data-theme="violet" style="background:#8b5cf6" title="紫罗兰"></span>
+                    <span class="theme-dot" data-theme="rose" style="background:#f43f5e" title="玫红"></span>
+                    <span class="theme-dot" data-theme="pink" style="background:#ec4899" title="粉红"></span>
+                    <span class="theme-dot" data-theme="orange" style="background:#f97316" title="橘橙"></span>
+                    <span class="theme-dot" data-theme="amber" style="background:#f59e0b" title="琥珀"></span>
+                    <span class="theme-dot" data-theme="lime" style="background:#84cc16" title="青柠"></span>
+                    <span class="theme-dot" data-theme="emerald" style="background:#10b981" title="翠绿"></span>
+                    <span class="theme-dot" data-theme="teal" style="background:#14b8a6" title="青碧"></span>
+                    <span class="theme-dot" data-theme="cyan" style="background:#06b6d4" title="青色"></span>
+                    <span class="theme-dot" data-theme="sky" style="background:#0ea5e9" title="天蓝"></span>
+                    <span class="theme-dot" data-theme="slate" style="background:#64748b" title="岩灰"></span>
+                    <label class="theme-custom" title="自定义颜色">
+                        <input type="color" id="customColor" value="#6366f1" />
+                        <span class="theme-custom-icon">+</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="widget-divider" id="widgetDivider"></div>
+
+            <!-- Main -->
+            <div class="widget-main" id="widgetMain">
+                <div class="card">
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            id="todoInput"
+                            placeholder="添加新任务…"
+                            maxlength="200"
+                            autocomplete="off"
+                        />
+                        <button class="btn-add" id="addBtn" title="添加任务">+</button>
+                    </div>
+
+                    <div class="filters">
+                        <button class="filter-btn active" data-filter="all">全部</button>
+                        <button class="filter-btn" data-filter="active">待完成</button>
+                        <button class="filter-btn" data-filter="completed">已完成</button>
+                    </div>
+
+                    <ul class="todo-list" id="todoList"></ul>
+
+                    <div class="footer">
+                        <span id="counter">0 项任务</span>
+                        <button class="btn-clear" id="clearCompleted" disabled>清除已完成</button>
+                    </div>
+                </div>
+
+                <!-- AI analysis panel -->
+                <div class="ai-panel" id="aiPanel">
+                    <div class="ai-panel-header">
+                        <span class="ai-title"><span class="ai-dot"></span>AI 时效分析</span>
+                        <button class="btn-analyze" id="analyzeBtn">分析</button>
+                    </div>
+                    <div class="ai-summary" id="aiSummary">等待分析…点击"分析"或添加含日期的待办</div>
+                    <div class="ai-deadlines" id="aiDeadlines"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            // ── State ────────────────────────────────────
+            const STORAGE_KEY = 'todo-app-data';
+            let todos = [];
+            let currentFilter = 'all';
+            let editingId = null;
+
+            // ── DOM refs ────────────────────────────────
+            const todoInput = document.getElementById('todoInput');
+            const addBtn = document.getElementById('addBtn');
+            const todoList = document.getElementById('todoList');
+            const counter = document.getElementById('counter');
+            const clearCompletedBtn = document.getElementById('clearCompleted');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+
+            // ── Persistence ─────────────────────────────
+            function loadTodos() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    todos = raw ? JSON.parse(raw) : [];
+                } catch {
+                    todos = [];
+                }
+            }
+
+            function saveTodos() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+            }
+
+            // ── Helpers ─────────────────────────────────
+            function generateId() {
+                return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+            }
+
+            function getFilteredTodos() {
+                switch (currentFilter) {
+                    case 'active':
+                        return todos.filter(t => !t.completed);
+                    case 'completed':
+                        return todos.filter(t => t.completed);
+                    default:
+                        return todos;
+                }
+            }
+
+            function getActiveCount() {
+                return todos.filter(t => !t.completed).length;
+            }
+
+            // ── Render ──────────────────────────────────
+            function render() {
+                const filtered = getFilteredTodos();
+
+                // List
+                if (filtered.length === 0) {
+                    todoList.innerHTML = `
+                        <li class="empty-state">
+                            <span class="icon">${getEmptyIcon()}</span>
+                            <p>${getEmptyText()}</p>
+                        </li>`;
+                } else {
+                    todoList.innerHTML = filtered.map(todo => {
+                        const isEditing = editingId === todo.id;
+                        return `
+                            <li class="todo-item${todo.completed ? ' completed' : ''}" data-id="${todo.id}" draggable="true">
+                                <span class="drag-handle" title="拖拽排序">⋮⋮</span>
+                                <label class="checkbox-wrapper" title="${todo.completed ? '标记为未完成' : '标记为已完成'}">
+                                    <input
+                                        type="checkbox"
+                                        ${todo.completed ? 'checked' : ''}
+                                        data-action="toggle"
+                                        data-id="${todo.id}"
+                                    />
+                                </label>
+                                ${isEditing
+                                    ? `<input
+                                        class="edit-input"
+                                        type="text"
+                                        value="${escapeHtml(todo.text)}"
+                                        data-action="edit-input"
+                                        data-id="${todo.id}"
+                                        maxlength="200"
+                                        autofocus
+                                    />`
+                                    : `<span
+                                        class="todo-text"
+                                        data-action="start-edit"
+                                        data-id="${todo.id}"
+                                        title="双击编辑"
+                                    >${escapeHtml(todo.text)}${renderDeadlineBadge(todo.id)}</span>`
+                                }
+                                <div class="actions">
+                                    ${!isEditing
+                                        ? `<button
+                                            class="btn-icon edit"
+                                            data-action="start-edit"
+                                            data-id="${todo.id}"
+                                            title="编辑"
+                                        >✎</button>`
+                                        : `<button
+                                            class="btn-icon"
+                                            data-action="save-edit"
+                                            data-id="${todo.id}"
+                                            title="保存"
+                                            style="color:#10b981"
+                                        >✓</button>`
+                                    }
+                                    <button
+                                        class="btn-icon delete"
+                                        data-action="delete"
+                                        data-id="${todo.id}"
+                                        title="删除"
+                                    >✕</button>
+                                </div>
+                            </li>`;
+                    }).join('');
+                }
+
+                // Counter
+                const activeCount = getActiveCount();
+                counter.textContent = `${activeCount} 项待完成`;
+
+                // Clear button
+                const completedCount = todos.length - activeCount;
+                clearCompletedBtn.disabled = completedCount === 0;
+                if (completedCount > 0) {
+                    clearCompletedBtn.textContent = `清除已完成 (${completedCount})`;
+                } else {
+                    clearCompletedBtn.textContent = '清除已完成';
+                }
+
+                // Focus edit input if editing
+                if (editingId) {
+                    const editInput = todoList.querySelector('.edit-input');
+                    if (editInput) {
+                        editInput.focus();
+                        editInput.select();
+                    }
+                }
+
+                // Update sidebar
+                updateSidebar();
+
+                // Trigger AI analysis after render (debounced)
+                scheduleAnalysis();
+            }
+
+            function updateSidebar() {
+                const dateEl = document.getElementById('sidebarDate');
+                if (dateEl) {
+                    const now = new Date();
+                    const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+                    dateEl.innerHTML = `<span class="s-date-num">${now.getDate()}</span>${now.getMonth() + 1}月 ${weekDays[now.getDay()]}`;
+                }
+                document.querySelectorAll('.sidebar-filter-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.filter === currentFilter);
+                });
+            }
+
+            function getEmptyIcon() {
+                switch (currentFilter) {
+                    case 'active':
+                        return '🎉';
+                    case 'completed':
+                        return '📋';
+                    default:
+                        return '✨';
+                }
+            }
+
+            function getEmptyText() {
+                switch (currentFilter) {
+                    case 'active':
+                        return '所有任务都完成啦！';
+                    case 'completed':
+                        return '还没有已完成的任务';
+                    default:
+                        return '还没有任务，开始添加吧';
+                }
+            }
+
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function renderFilters() {
+                filterBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.filter === currentFilter);
+                });
+            }
+
+            // ── Actions ──────────────────────────────────
+            function addTodo() {
+                const text = todoInput.value.trim();
+                if (!text) return;
+
+                todos.unshift({
+                    id: generateId(),
+                    text: text,
+                    completed: false,
+                    createdAt: Date.now(),
+                });
+
+                todoInput.value = '';
+                todoInput.focus();
+                saveTodos();
+                render();
+            }
+
+            function toggleTodo(id) {
+                const todo = todos.find(t => t.id === id);
+                if (todo) {
+                    todo.completed = !todo.completed;
+                    saveTodos();
+                    render();
+                }
+            }
+
+            function deleteTodo(id) {
+                const itemEl = todoList.querySelector(`[data-id="${id}"]`);
+                if (itemEl) {
+                    itemEl.classList.add('removing');
+                    itemEl.addEventListener('animationend', () => {
+                        todos = todos.filter(t => t.id !== id);
+                        if (editingId === id) editingId = null;
+                        saveTodos();
+                        render();
+                    }, { once: true });
+                } else {
+                    todos = todos.filter(t => t.id !== id);
+                    if (editingId === id) editingId = null;
+                    saveTodos();
+                    render();
+                }
+            }
+
+            function startEdit(id) {
+                editingId = id;
+                render();
+            }
+
+            function saveEdit(id, newText) {
+                const text = newText.trim();
+                if (!text) {
+                    deleteTodo(id);
+                    return;
+                }
+                const todo = todos.find(t => t.id === id);
+                if (todo) {
+                    todo.text = text;
+                }
+                editingId = null;
+                saveTodos();
+                render();
+            }
+
+            function cancelEdit() {
+                editingId = null;
+                render();
+            }
+
+            function clearCompleted() {
+                todos = todos.filter(t => !t.completed);
+                saveTodos();
+                render();
+            }
+
+            function setFilter(filter) {
+                currentFilter = filter;
+                editingId = null;
+                renderFilters();
+                render();
+            }
+
+            // ── Drag & Drop reorder ──────────────────
+            let dragSrcId = null;
+
+            todoList.addEventListener('dragstart', function(e) {
+                const item = e.target.closest('.todo-item');
+                if (!item || editingId) { e.preventDefault(); return; }
+                dragSrcId = item.dataset.id;
+                item.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', dragSrcId);
+            });
+
+            todoList.addEventListener('dragend', function(e) {
+                const item = e.target.closest('.todo-item');
+                if (item) item.classList.remove('dragging');
+                document.querySelectorAll('.todo-item.drag-over').forEach(el => el.classList.remove('drag-over'));
+                dragSrcId = null;
+            });
+
+            todoList.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                if (!dragSrcId) return;
+                const item = e.target.closest('.todo-item');
+                if (!item || item.dataset.id === dragSrcId) return;
+                e.dataTransfer.dropEffect = 'move';
+                // Highlight drop target
+                document.querySelectorAll('.todo-item.drag-over').forEach(el => el.classList.remove('drag-over'));
+                item.classList.add('drag-over');
+            });
+
+            todoList.addEventListener('dragleave', function(e) {
+                const item = e.target.closest('.todo-item');
+                if (item) item.classList.remove('drag-over');
+            });
+
+            todoList.addEventListener('drop', function(e) {
+                e.preventDefault();
+                const item = e.target.closest('.todo-item');
+                if (!item || !dragSrcId || item.dataset.id === dragSrcId) return;
+                item.classList.remove('drag-over');
+
+                // Reorder in the filtered view = reorder in the full array
+                const srcId = dragSrcId;
+                const dstId = item.dataset.id;
+                const srcIdx = todos.findIndex(t => t.id === srcId);
+                const dstIdx = todos.findIndex(t => t.id === dstId);
+                if (srcIdx === -1 || dstIdx === -1 || srcIdx === dstIdx) return;
+
+                const [moved] = todos.splice(srcIdx, 1);
+                todos.splice(dstIdx, 0, moved);
+                dragSrcId = null;
+                saveTodos();
+                render();
+            });
+
+            // ── Event delegation ────────────────────────
+            todoList.addEventListener('click', function (e) {
+                const target = e.target.closest('[data-action]');
+                if (!target) return;
+
+                const action = target.dataset.action;
+                const id = target.dataset.id;
+
+                switch (action) {
+                    case 'toggle':
+                        toggleTodo(id);
+                        break;
+                    case 'delete':
+                        deleteTodo(id);
+                        break;
+                    case 'start-edit':
+                        startEdit(id);
+                        break;
+                    case 'save-edit':
+                        const editInput = todoList.querySelector(`[data-action="edit-input"][data-id="${id}"]`);
+                        if (editInput) {
+                            saveEdit(id, editInput.value);
+                        }
+                        break;
+                }
+            });
+
+            // Double-click to edit
+            todoList.addEventListener('dblclick', function (e) {
+                const item = e.target.closest('.todo-item');
+                if (!item || editingId) return;
+                const id = item.dataset.id;
+                const todo = todos.find(t => t.id === id);
+                if (todo && !todo.completed) {
+                    startEdit(id);
+                }
+            });
+
+            // Keyboard shortcuts for edit input
+            todoList.addEventListener('keydown', function (e) {
+                if (!editingId) return;
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const input = e.target.closest('.edit-input');
+                    if (input) {
+                        saveEdit(editingId, input.value);
+                    }
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelEdit();
+                }
+            });
+
+            // Add button
+            addBtn.addEventListener('click', addTodo);
+
+            // Enter key in main input
+            todoInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTodo();
+                }
+            });
+
+            // Filter buttons
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    setFilter(this.dataset.filter);
+                });
+            });
+
+            // Clear completed
+            clearCompletedBtn.addEventListener('click', clearCompleted);
+
+            // ── AI Analysis ───────────────────────────────
+            let currentAnalysis = null;
+
+            async function runAnalysis() {
+                const summaryEl = document.getElementById('aiSummary');
+                const deadlinesEl = document.getElementById('aiDeadlines');
+                const btn = document.getElementById('analyzeBtn');
+
+                if (!isElectron) {
+                    if (summaryEl) summaryEl.textContent = '仅在桌面应用中可用';
+                    return;
+                }
+
+                if (!btn || !summaryEl) return;
+
+                btn.disabled = true;
+                btn.textContent = '分析中…';
+                summaryEl.textContent = '正在分析待办事项中的截止日期…';
+
+                try {
+                    const result = await window.electronAPI.analyzeTodos(todos);
+                    currentAnalysis = result;
+                    updateAnalysisUI(result);
+                    _suppressAnalysis = true;
+                    render();
+                    _suppressAnalysis = false;
+                    btn.textContent = '分析';
+                } catch (err) {
+                    console.error('AI analysis failed:', err);
+                    summaryEl.textContent = '⚠️ 分析失败，请重试';
+                    deadlinesEl.innerHTML = '';
+                    btn.textContent = '重试';
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+
+            function updateAnalysisUI(result) {
+                const summaryEl = document.getElementById('aiSummary');
+                const deadlinesEl = document.getElementById('aiDeadlines');
+                const panel = document.getElementById('aiPanel');
+
+                if (!result || result.deadlines.length === 0) {
+                    summaryEl.textContent = result?.summary || '暂无待办事项';
+                    deadlinesEl.innerHTML = '';
+                    return;
+                }
+
+                summaryEl.textContent = result.summary;
+
+                deadlinesEl.innerHTML = result.deadlines.map(d => `
+                    <div class="ai-deadline-item">
+                        <span class="ai-deadline-dot" style="background:${d.urgency.color}"></span>
+                        <span class="ai-deadline-date" style="color:${d.urgency.color}">${d.dateLocal}</span>
+                        <span class="ai-deadline-text" title="${escapeHtml(d.text)}">${escapeHtml(d.text)}</span>
+                        <span class="ai-deadline-badge" style="background:${d.urgency.color}20;color:${d.urgency.color}">${d.urgency.label}</span>
+                    </div>
+                `).join('');
+            }
+
+            function getDeadlineInfo(todoId) {
+                if (!currentAnalysis) return null;
+                return currentAnalysis.deadlines.find(d => d.id === todoId) || null;
+            }
+
+            function renderDeadlineBadge(todoId) {
+                if (!isElectron || !currentAnalysis) return '';
+                const dl = getDeadlineInfo(todoId);
+                if (!dl) return '';
+                const c = dl.urgency.color;
+                return `<span class="deadline-badge" style="background:${c}18;color:${c};border:1px solid ${c}30">${dl.urgency.label}</span>`;
+            }
+
+            // ── Electron detection (must be declared before AI code uses it) ──
+            const isElectron = !!(window.electronAPI);
+
+            // Auto-analyze after todo changes (debounced)
+            let analysisTimeout = null;
+            let _suppressAnalysis = false;
+            function scheduleAnalysis() {
+                if (!isElectron || _suppressAnalysis) return;
+                clearTimeout(analysisTimeout);
+                analysisTimeout = setTimeout(() => { runAnalysis().catch(() => {}); }, 800);
+            }
+
+            // ── Init ────────────────────────────────────
+            loadTodos();
+            render();
+
+            // Run AI analysis after load if in Electron
+            if (isElectron) {
+                setTimeout(runAnalysis, 500);
+                // Wire up analyze button
+                document.getElementById('analyzeBtn').addEventListener('click', runAnalysis);
+            }
+
+            // scheduleAnalysis is called at the end of render() below
+
+            // Focus input on load
+            todoInput.focus();
+
+            console.log('✅ Todo App 已就绪');
+            console.log('   💡 提示：双击任务可快速编辑');
+
+            // ── Font size controls (independent per mode) ──
+            {
+            const FONT_SCALE_MIN = 0.7;
+            const FONT_SCALE_MAX = 1.6;
+            const FONT_SCALE_STEP = 0.05;
+
+            // Mode-specific storage keys
+            function getStorageKey() {
+                return document.body.classList.contains('widget-mode')
+                    ? 'font-scale-widget'
+                    : 'font-scale-window';
+            }
+
+            let fontScale = 1;
+
+            function loadFontScale() {
+                try {
+                    const key = getStorageKey();
+                    const saved = localStorage.getItem(key);
+                    if (saved) fontScale = Math.max(FONT_SCALE_MIN, Math.min(FONT_SCALE_MAX, parseFloat(saved)));
+                    else fontScale = 1;
+                } catch { fontScale = 1; }
+            }
+
+            function saveFontScale() {
+                try { localStorage.setItem(getStorageKey(), fontScale.toString()); } catch {}
+            }
+
+            function applyFontScale() {
+                document.documentElement.style.setProperty('--font-scale', fontScale.toString());
+                // Update both labels (only the visible one matters, but keep both in sync)
+                const sidebarLabel = document.getElementById('fontsizeLabel');
+                const headerLabel = document.getElementById('headerFontsizeLabel');
+                const pct = Math.round(fontScale * 100) + '%';
+                if (sidebarLabel) sidebarLabel.textContent = pct;
+                if (headerLabel) headerLabel.textContent = pct;
+            }
+
+            function adjustFontSize(delta) {
+                fontScale = Math.max(FONT_SCALE_MIN, Math.min(FONT_SCALE_MAX, fontScale + delta));
+                saveFontScale();
+                applyFontScale();
+            }
+
+            function resetFontSize() {
+                fontScale = 1;
+                saveFontScale();
+                applyFontScale();
+            }
+
+            // Load saved scale for current mode and apply
+            loadFontScale();
+            applyFontScale();
+
+            // Wire up sidebar buttons (widget mode)
+            const sidebarFontsize = document.getElementById('sidebarFontsize');
+            if (sidebarFontsize) {
+                sidebarFontsize.addEventListener('click', (e) => {
+                    const btn = e.target.closest('[data-action]');
+                    if (!btn) return;
+                    switch (btn.dataset.action) {
+                        case 'font-up':   adjustFontSize(+FONT_SCALE_STEP); break;
+                        case 'font-down': adjustFontSize(-FONT_SCALE_STEP); break;
+                        case 'font-reset': resetFontSize(); break;
+                    }
+                });
+            }
+
+            // Wire up header buttons (window mode)
+            const headerFontsize = document.getElementById('headerFontsize');
+            if (headerFontsize) {
+                headerFontsize.addEventListener('click', (e) => {
+                    const btn = e.target.closest('[data-action]');
+                    if (!btn) return;
+                    switch (btn.dataset.action) {
+                        case 'font-up':   adjustFontSize(+FONT_SCALE_STEP); break;
+                        case 'font-down': adjustFontSize(-FONT_SCALE_STEP); break;
+                        case 'font-reset': resetFontSize(); break;
+                    }
+                });
+            }
+
+            // Reload font scale when mode changes (Electron)
+            function reloadFontScaleForMode() {
+                loadFontScale();
+                applyFontScale();
+            }
+            // Expose for mode-change listener
+            window._reloadFontScale = reloadFontScaleForMode;
+            }
+
+            // ── Electron integration ────────────────
+
+            if (isElectron) {
+                // Detect current mode and apply
+                window.electronAPI.getMode().then(mode => {
+                    if (mode === 'widget') {
+                        document.body.classList.add('widget-mode');
+                        updateModeToggleIcon('widget');
+                        // Reload font scale for widget mode
+                        if (window._reloadFontScale) window._reloadFontScale();
+                    }
+                });
+
+                // Listen for mode changes from main process
+                window.electronAPI.onModeChanged((mode) => {
+                    if (mode === 'widget') {
+                        document.body.classList.add('widget-mode');
+                    } else {
+                        document.body.classList.remove('widget-mode');
+                    }
+                    updateModeToggleIcon(mode);
+                    // Reload font scale for the new mode
+                    if (window._reloadFontScale) window._reloadFontScale();
+                });
+
+                // Mode toggle button
+                document.getElementById('modeToggleBtn').addEventListener('click', () => {
+                    window.electronAPI.toggleMode();
+                });
+
+                // Minimize button
+                document.getElementById('minimizeBtn').addEventListener('click', () => {
+                    window.electronAPI.minimizeWindow();
+                });
+
+                // Close to tray button
+                document.getElementById('closeWidgetBtn').addEventListener('click', () => {
+                    window.electronAPI.closeWidget();
+                });
+
+                function updateModeToggleIcon(mode) {
+                    const btn = document.getElementById('modeToggleBtn');
+                    if (btn) {
+                        btn.title = mode === 'widget' ? '切换到普通窗口' : '切换到桌面小组件模式';
+                        btn.textContent = mode === 'widget' ? '□' : '⊡';
+                    }
+                }
+
+                // ── Resize handle ──────────────────────
+                const resizeHandle = document.getElementById('resizeHandle');
+                if (resizeHandle && window.electronAPI) {
+                    let isResizing = false;
+                    let startScreenX, startScreenY, startW, startH;
+
+                    resizeHandle.addEventListener('mousedown', async (e) => {
+                        isResizing = true;
+                        startScreenX = e.screenX;
+                        startScreenY = e.screenY;
+                        // Get current window size via config
+                        const cfg = await window.electronAPI.getConfig();
+                        startW = cfg.mode === 'widget' ? (cfg.widgetWidth || cfg.normalWidth) : cfg.normalWidth;
+                        startH = cfg.mode === 'widget' ? (cfg.widgetHeight || cfg.normalHeight) : cfg.normalHeight;
+                        resizeHandle.style.opacity = '1';
+                        e.preventDefault();
+                        e.stopPropagation();
+                    });
+
+                    document.addEventListener('mousemove', (e) => {
+                        if (!isResizing) return;
+                        const newW = startW + (e.screenX - startScreenX);
+                        const newH = startH + (e.screenY - startScreenY);
+                        window.electronAPI.resizeWidget(newW, newH);
+                    });
+
+                    document.addEventListener('mouseup', () => {
+                        if (isResizing) {
+                            isResizing = false;
+                            resizeHandle.style.opacity = '';
+                        }
+                    });
+                }
+
+                // ── Divider drag ──────────────────────
+                const divider = document.getElementById('widgetDivider');
+                if (divider) {
+                    let dragging = false, startX, startW;
+                    divider.addEventListener('mousedown', (e) => {
+                        dragging = true;
+                        startX = e.clientX;
+                        const sb = document.getElementById('widgetSidebar');
+                        startW = sb ? sb.offsetWidth : 78;
+                        divider.classList.add('dragging');
+                        document.body.style.cursor = 'col-resize';
+                        document.body.style.userSelect = 'none';
+                        e.preventDefault();
+                    });
+                    document.addEventListener('mousemove', (e) => {
+                        if (!dragging) return;
+                        let w = startW + (e.clientX - startX);
+                        w = Math.max(44, Math.min(150, w));
+                        const sb = document.getElementById('widgetSidebar');
+                        if (sb) sb.style.width = w + 'px';
+                    });
+                    document.addEventListener('mouseup', () => {
+                        if (!dragging) return;
+                        dragging = false;
+                        divider.classList.remove('dragging');
+                        document.body.style.cursor = '';
+                        document.body.style.userSelect = '';
+                        const sb = document.getElementById('widgetSidebar');
+                        if (sb) try { localStorage.setItem('widget-sidebar-w', sb.style.width); } catch {}
+                    });
+                }
+
+                // ── Theme switcher ──────────────────
+                const themeDots = document.querySelectorAll('.theme-dot');
+                const themeBody = document.body;
+                const savedTheme = localStorage.getItem('widget-theme') || 'indigo';
+                const customColorInput = document.getElementById('customColor');
+
+                function applyTheme(name) {
+                    themeBody.classList.forEach(c => { if (c.startsWith('theme-')) themeBody.classList.remove(c); });
+                    themeBody.classList.add('theme-' + name);
+                    themeDots.forEach(d => d.classList.remove('active'));
+                    const dot = document.querySelector('.theme-dot[data-theme="' + name + '"]');
+                    if (dot) dot.classList.add('active');
+                    try { localStorage.setItem('widget-theme', name); } catch {}
+                }
+
+                function applyCustomColor(hex) {
+                    themeBody.classList.forEach(c => { if (c.startsWith('theme-')) themeBody.classList.remove(c); });
+                    themeDots.forEach(d => d.classList.remove('active'));
+                    document.documentElement.style.setProperty('--primary', hex);
+                    // Generate a lighter ghost color
+                    document.documentElement.style.setProperty('--primary-ghost', hex + '20');
+                    try { localStorage.setItem('widget-theme-custom', hex); } catch {}
+                }
+
+                // Load saved
+                if (savedTheme === 'custom') {
+                    const customHex = localStorage.getItem('widget-theme-custom') || '#6366f1';
+                    applyCustomColor(customHex);
+                    if (customColorInput) customColorInput.value = customHex;
+                } else {
+                    applyTheme(savedTheme);
+                }
+
+                // Preset theme click
+                document.getElementById('sidebarTheme').addEventListener('click', (e) => {
+                    const dot = e.target.closest('.theme-dot');
+                    if (!dot) return;
+                    applyTheme(dot.dataset.theme);
+                });
+
+                // Custom color change
+                if (customColorInput) {
+                    customColorInput.addEventListener('input', (e) => {
+                        applyCustomColor(e.target.value);
+                        try { localStorage.setItem('widget-theme', 'custom'); } catch {}
+                    });
+                }
+
+                // ── Sidebar filter clicks ───────────
+                const sf = document.getElementById('sidebarFilters');
+                if (sf) {
+                    sf.addEventListener('click', (e) => {
+                        const btn = e.target.closest('.sidebar-filter-btn');
+                        if (!btn) return;
+                        setFilter(btn.dataset.filter);
+                    });
+                }
+
+                // ── Restore sidebar width ──────────
+                try {
+                    const sw = localStorage.getItem('widget-sidebar-w');
+                    if (sw) {
+                        const sb = document.getElementById('widgetSidebar');
+                        if (sb) sb.style.width = sw;
+                    }
+                } catch {}
+
+                console.log('⚡ Electron 模式已激活');
+            }
+
+            // ── PWA: Register service worker ──────────
+            if ('serviceWorker' in navigator && !isElectron) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('sw.js')
+                        .then(reg => console.log('📦 Service Worker 已注册:', reg.scope))
+                        .catch(err => console.log('⚠️ Service Worker 注册失败:', err));
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
